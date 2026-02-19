@@ -190,6 +190,7 @@ function Reco({ type, title, text }) {
         </div>
     );
 }
+ 
 
 function Slider({ label, value, onChange }) {
     return (
