@@ -28,23 +28,23 @@ export default function ExecutiveDashboard() {
     return (
         <div className="dashboard-page">
 
-            {/* ================= KPIs ================= */}
+            
             <div className="kpi-grid">
                 {kpis.map((k, i) => (
                     <KPI key={i} {...k} />
                 ))}
             </div>
 
-            {/* ================= Middle ================= */}
+            
             <div className="mid-grid">
 
-                {/* Trend chart */}
+                
                 <div className="card">
                     <h3 className="section-title">Revenue Trend</h3>
                     <TrendChart />
                 </div>
 
-                {/* Risk indicators */}
+                
                 <div className="card">
                     <h3 className="section-title">Risk Indicators</h3>
 
@@ -69,16 +69,16 @@ export default function ExecutiveDashboard() {
 
             </div>
 
-            {/* ================= Bottom ================= */}
+            
             <div className="bottom-grid">
 
-                {/* Decision + Projected Impact */}
+            
                 <div>
                     <DecisionOverview />
                     <ProjectedImpact />
                 </div>
 
-                {/* Strategic recommendations */}
+            
                 <div>
                     <h3 className="section-title">Strategic Recommendations</h3>
 
@@ -101,7 +101,7 @@ export default function ExecutiveDashboard() {
                     />
                 </div>
 
-                {/* Budget simulation */}
+                
                 <div className="card">
                     <h3 className="section-title">₹10 Lakh Budget Simulation</h3>
 
@@ -126,7 +126,7 @@ export default function ExecutiveDashboard() {
             </div>
 
 
-            {/* ================= Executive summary ================= */}
+        
             <div className="card executive-box">
                 <h3 className="section-title">Executive Decision Summary</h3>
 
