@@ -7,15 +7,11 @@ import ProjectedImpact from "../components/ProjectedImpact";
 import { fetchDashboardSummary, fetchKPI, fetchHealth } from "../api/api";
 
 export default function ExecutiveDashboard() {
-  /*  STATES  */
 
   const [summary, setSummary] = useState(null);
   const [kpiData, setKpiData] = useState(null);
   const [healthData, setHealthData] = useState(null);
-
   const [loading, setLoading] = useState(true);
-
-  /*  BUDGET SIMULATION  */
 
   const [budget, setBudget] = useState({
     marketing: 30,
@@ -26,8 +22,11 @@ export default function ExecutiveDashboard() {
   });
 
   const total = Object.values(budget).reduce((a, b) => a + b, 0);
+  const showLowBudgetMessage = total > 100;
 
-  /*  API CALL  */
+  const updateBudget = (key, value) => {
+    setBudget({ ...budget, [key]: value });
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -39,18 +38,15 @@ export default function ExecutiveDashboard() {
         setSummary(summaryRes);
         setKpiData(kpiRes);
         setHealthData(healthRes);
-
-        setLoading(false);
       } catch (err) {
         console.error("API Error:", err);
+      } finally {
         setLoading(false);
       }
     }
 
     loadData();
   }, []);
-
-  /*  LOADER  */
 
   if (loading) {
     return (
@@ -60,237 +56,261 @@ export default function ExecutiveDashboard() {
     );
   }
 
-  /*  KPI FROM BACKEND  */
-
   const kpis = [
-    {
-      title: "Total Records",
-      value: kpiData?.totalRecords || 0,
-      change: "",
-      trend: "up",
-      status: "good",
-    },
-    {
-      title: "Health Records",
-      value: healthData?.totalRecords || 0,
-      change: "",
-      trend: "up",
-      status: "good",
-    },
-    {
-      title: "Profit Status",
-      value: summary?.profitability || "N/A",
-      change: "",
-      trend: "up",
-      status: "good",
-    },
-    {
-      title: "Risk Level",
-      value: summary?.riskStatus || "N/A",
-      change: "",
-      trend: "down",
-      status: "warn",
-    },
+    { title: "Total Records", value: kpiData?.totalRecords || 0, trend: "up", status: "good" },
+    { title: "Health Records", value: healthData?.totalRecords || 0, trend: "up", status: "good" },
+    { title: "Profit Status", value: summary?.profitability || "N/A", trend: "up", status: "good" },
+    { title: "Risk Level", value: summary?.riskStatus || "N/A", trend: "down", status: "warn" },
   ];
-
-  /*  UI  */
 
   return (
     <div className="dashboard-page">
-      {/*  KPI  */}
 
+      {/* KPI */}
       <div className="kpi-grid">
         {kpis.map((k, i) => (
           <KPI key={i} {...k} />
         ))}
       </div>
 
-      {/*  MID GRID  */}
-
+      {/* MID */}
       <div className="mid-grid">
+
         <div className="card">
           <h3 className="section-title">Revenue Trend</h3>
-          <TrendChart />
+
+          <RevenueTrendChart
+            data={summary?.revenueTrend || [42, 48, 46, 52, 60, 58, 66]}
+            labels={["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]}
+          />
         </div>
 
         <div className="card">
           <h3 className="section-title">Risk Indicators</h3>
 
-          <RiskItem
-            label="Overall Risk"
-            value={summary?.riskStatus || "N/A"}
-            state="warning"
-          />
-
-          <RiskItem
-            label="Action Area"
-            value={summary?.actionArea || "N/A"}
-            state="safe"
-          />
-
+          <RiskItem label="Overall Risk" value={summary?.riskStatus || "N/A"} state="warning" />
+          <RiskItem label="Action Area" value={summary?.actionArea || "N/A"} state="safe" />
           <RiskItem
             label="Investment Impact"
             value={summary?.investmentImpact || "N/A"}
             state="critical"
           />
         </div>
+
       </div>
 
-      {/*  BOTTOM GRID  */}
-
+      {/* BOTTOM */}
       <div className="bottom-grid">
         <div>
           <DecisionOverview summary={summary} />
-
           <ProjectedImpact summary={summary} />
         </div>
-
-        {/*  RECOMMENDATIONS  */}
 
         <div>
           <h3 className="section-title">Strategic Recommendations</h3>
 
-          <Reco
-            type="warning"
-            title="Improve logistics"
-            text={summary?.logisticsAdvice || "Review delivery performance"}
-          />
-
-          <Reco
-            type="danger"
-            title="Audit sellers"
-            text={summary?.sellerAdvice || "Audit risky sellers"}
-          />
-
-          <Reco
-            type="success"
-            title="Boost marketing"
-            text={summary?.marketingAdvice || "Increase campaigns"}
-          />
+          <Reco type="warning" title="Improve logistics" text={summary?.logisticsAdvice || "Review delivery performance"} />
+          <Reco type="danger" title="Audit sellers" text={summary?.sellerAdvice || "Audit risky sellers"} />
+          <Reco type="success" title="Boost marketing" text={summary?.marketingAdvice || "Increase campaigns"} />
         </div>
-
-        {/*  BUDGET */}
 
         <div className="card">
           <h3 className="section-title">₹10 Lakh Budget Simulation</h3>
 
-          <p className="muted">Total Allocation : {total}%</p>
+          <p className="muted">
+            Total Allocation :
+            <span
+              style={{
+                color: showLowBudgetMessage ? "#ff1744" : "#00c853",
+                fontWeight: 600,
+              }}
+            >
+              {" "}
+              {total}%
+            </span>
+          </p>
 
-          <Slider
-            label="Marketing"
-            value={budget.marketing}
-            onChange={(v) => setBudget({ ...budget, marketing: v })}
-          />
+          {showLowBudgetMessage && (
+            <p style={{ color: "#ff1744", fontWeight: 600 }}>
+              ⚠ Low Budget: Allocation exceeded 100%.
+            </p>
+          )}
 
-          <Slider
-            label="Logistics"
-            value={budget.logistics}
-            onChange={(v) => setBudget({ ...budget, logistics: v })}
-          />
-
-          <Slider
-            label="Incentives"
-            value={budget.incentives}
-            onChange={(v) => setBudget({ ...budget, incentives: v })}
-          />
-
-          <Slider
-            label="Fraud Control"
-            value={budget.fraud}
-            onChange={(v) => setBudget({ ...budget, fraud: v })}
-          />
-
-          <Slider
-            label="Technology"
-            value={budget.tech}
-            onChange={(v) => setBudget({ ...budget, tech: v })}
-          />
+          <Slider label="Marketing" value={budget.marketing} onChange={(v) => updateBudget("marketing", v)} />
+          <Slider label="Logistics" value={budget.logistics} onChange={(v) => updateBudget("logistics", v)} />
+          <Slider label="Incentives" value={budget.incentives} onChange={(v) => updateBudget("incentives", v)} />
+          <Slider label="Fraud Control" value={budget.fraud} onChange={(v) => updateBudget("fraud", v)} />
+          <Slider label="Technology" value={budget.tech} onChange={(v) => updateBudget("tech", v)} />
         </div>
       </div>
 
-      {/*  SUMMARY */}
-
+      {/* EXECUTIVE SUMMARY */}
       <div className="card executive-box">
         <h3 className="section-title">Executive Summary</h3>
 
         <ul>
-          <li>
-            <b>Are we profitable?</b> → {summary?.profitability}
-          </li>
-
-          <li>
-            <b>Are we at risk?</b> → {summary?.riskStatus}
-          </li>
-
-          <li>
-            <b>Where should we act?</b> → {summary?.actionArea}
-          </li>
-
-          <li>
-            <b>If we invest ₹10L?</b> → {summary?.investmentImpact}
-          </li>
+          <li><b>Are we profitable?</b> → {summary?.profitability || "N/A"}</li>
+          <li><b>Are we at risk?</b> → {summary?.riskStatus || "N/A"}</li>
+          <li><b>Where should we act?</b> → {summary?.actionArea || "N/A"}</li>
+          <li><b>If we invest ₹10L?</b> → {summary?.investmentImpact || "N/A"}</li>
         </ul>
       </div>
+
+      {/* ===== FORM ===== */}
+      <ExecutiveEntryForm />
+
     </div>
   );
 }
 
-/*  COMPONENTS */
+/* ---------------- KPI ---------------- */
 
-function KPI({ title, value, change, trend, status }) {
+function KPI({ title, value, trend, status }) {
   return (
     <div className={`card kpi ${status}`}>
       <div className="kpi-title">{title}</div>
-
       <div className="kpi-value">{value}</div>
-
-      <div className="kpi-sub">
-        {change} {trend === "up" ? "↑" : "↓"}
-      </div>
+      <div className="kpi-sub">{trend === "up" ? "↑" : "↓"}</div>
     </div>
   );
 }
 
-function TrendChart() {
-  const data = [40, 55, 50, 65, 60, 75];
+/* ================= BIG GRAPH ================= */
+
+function RevenueTrendChart({ data, labels }) {
+
+  const width = 900;
+  const height = 360;
+  const padding = 55;
+
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+
+  const scaleX = (i) =>
+    padding + (i * (width - padding * 2)) / (data.length - 1);
+
+  const scaleY = (v) =>
+    padding + ((max - v) / (max - min || 1)) * (height - padding * 2);
+
+  const points = data.map((v, i) => ({
+    x: scaleX(i),
+    y: scaleY(v),
+    v
+  }));
+
+  const linePath =
+    "M " + points.map(p => `${p.x} ${p.y}`).join(" L ");
+
+  const areaPath =
+    linePath +
+    ` L ${points[points.length - 1].x} ${height - padding}` +
+    ` L ${points[0].x} ${height - padding} Z`;
+
+  const gridLines = 5;
 
   return (
-    <div className="trend-box">
-      {data.map((v, i) => (
-        <div key={i} className="trend-bar" style={{ height: v }} />
-      ))}
+    <div style={{ width: "100%", overflowX: "auto", paddingBottom: 6 }}>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height={height}
+      >
+        <defs>
+          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {[...Array(gridLines + 1)].map((_, i) => {
+          const y =
+            padding + (i * (height - padding * 2)) / gridLines;
+
+          return (
+            <line
+              key={i}
+              x1={padding}
+              y1={y}
+              x2={width - padding}
+              y2={y}
+              stroke="#e5e7eb"
+              strokeDasharray="5 5"
+            />
+          );
+        })}
+
+        <path d={areaPath} fill="url(#revGrad)" />
+
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#4f46e5"
+          strokeWidth="4"
+        />
+
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="6" fill="#4f46e5" />
+            <text
+              x={p.x}
+              y={p.y - 12}
+              textAnchor="middle"
+              fontSize="12"
+              fill="#1f2933"
+              fontWeight="600"
+            >
+              {p.v}
+            </text>
+          </g>
+        ))}
+
+        {labels?.map((lb, i) => (
+          <text
+            key={i}
+            x={scaleX(i)}
+            y={height - 15}
+            textAnchor="middle"
+            fontSize="13"
+            fill="#6b7280"
+          >
+            {lb}
+          </text>
+        ))}
+      </svg>
     </div>
   );
 }
+
+/* ---------------- RISK ---------------- */
 
 function RiskItem({ label, value, state }) {
   return (
     <div className={`risk-row ${state}`}>
       <span>{label}</span>
-
       <b>{value}</b>
     </div>
   );
 }
 
+/* ---------------- RECO ---------------- */
+
 function Reco({ type, title, text }) {
   return (
     <div className={`reco-card reco-${type}`}>
       <span className={`reco-badge badge-${type}`}>{type.toUpperCase()}</span>
-
       <div className="reco-title">{title}</div>
-
       <div className="reco-text">{text}</div>
     </div>
   );
 }
+
+/* ---------------- SLIDER ---------------- */
 
 function Slider({ label, value, onChange }) {
   return (
     <div className="slider-block">
       <div className="slider-head">
         <span>{label}</span>
-
         <span>{value}%</span>
       </div>
 
@@ -301,6 +321,141 @@ function Slider({ label, value, onChange }) {
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
       />
+    </div>
+  );
+}
+
+/* =====================================================
+   FORM
+===================================================== */
+
+function ExecutiveEntryForm() {
+
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    date: "",
+    product: "Accessories",
+    unit: "",
+    payment: "Cash"
+  });
+
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!form.name || !form.email || !form.date || !form.unit) {
+      setError("Please fill all required fields");
+      return;
+    }
+
+    setError("");
+
+    console.log("Form Data :", form);
+
+    alert("Form submitted successfully");
+
+    setForm({
+      name: "",
+      email: "",
+      date: "",
+      product: "Accessories",
+      unit: "",
+      payment: "Cash"
+    });
+  };
+
+  return (
+    <div className="card" style={{ marginTop: 24 }}>
+      <h3 className="section-title">Sales / Order Entry</h3>
+
+      <form onSubmit={handleSubmit} className="exec-form">
+
+        <div className="form-row">
+          <label>Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="Enter name"
+          />
+        </div>
+
+        <div className="form-row">
+          <label>Email ID *</label>
+          <input
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Enter email"
+          />
+        </div>
+
+        <div className="form-row">
+          <label>Date *</label>
+          <input
+            type="date"
+            name="date"
+            value={form.date}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="form-row">
+          <label>Product</label>
+          <select
+            name="product"
+            value={form.product}
+            onChange={handleChange}
+          >
+            <option>Accessories</option>
+            <option>Mobile</option>
+            <option>Tablet</option>
+          </select>
+        </div>
+
+        <div className="form-row">
+          <label>Unit *</label>
+          <input
+            type="number"
+            name="unit"
+            value={form.unit}
+            onChange={handleChange}
+            placeholder="Enter units"
+          />
+        </div>
+
+        <div className="form-row">
+          <label>Payment Mode</label>
+          <select
+            name="payment"
+            value={form.payment}
+            onChange={handleChange}
+          >
+            <option>Cash</option>
+            <option>UPI</option>
+            <option>Bank</option>
+          </select>
+        </div>
+
+        {error && (
+          <p style={{ color: "#ff1744", fontWeight: 600, gridColumn: "span 2" }}>
+            {error}
+          </p>
+        )}
+
+        <button type="submit" className="submit-btn">
+          Submit
+        </button>
+
+      </form>
     </div>
   );
 }
