@@ -318,7 +318,6 @@ function Slider({ label, value, onChange }) {
 }
 
 
-// ---------------- EXECUTIVE ENTRY FORM (UPDATED FINAL VERSION) ----------------
 
 function ExecutiveEntryForm() {
 
