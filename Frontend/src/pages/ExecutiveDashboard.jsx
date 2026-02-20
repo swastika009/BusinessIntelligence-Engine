@@ -66,14 +66,12 @@ export default function ExecutiveDashboard() {
   return (
     <div className="dashboard-page">
 
-      {/* KPI */}
       <div className="kpi-grid">
         {kpis.map((k, i) => (
           <KPI key={i} {...k} />
         ))}
       </div>
 
-      {/* MID */}
       <div className="mid-grid">
 
         <div className="card">
@@ -99,7 +97,6 @@ export default function ExecutiveDashboard() {
 
       </div>
 
-      {/* BOTTOM */}
       <div className="bottom-grid">
         <div>
           <DecisionOverview summary={summary} />
@@ -144,7 +141,6 @@ export default function ExecutiveDashboard() {
         </div>
       </div>
 
-      {/* EXECUTIVE SUMMARY */}
       <div className="card executive-box">
         <h3 className="section-title">Executive Summary</h3>
 
@@ -156,14 +152,13 @@ export default function ExecutiveDashboard() {
         </ul>
       </div>
 
-      {/* ===== FORM ===== */}
+
       <ExecutiveEntryForm />
 
     </div>
   );
 }
 
-/* ---------------- KPI ---------------- */
 
 function KPI({ title, value, trend, status }) {
   return (
@@ -175,7 +170,6 @@ function KPI({ title, value, trend, status }) {
   );
 }
 
-/* ================= BIG GRAPH ================= */
 
 function RevenueTrendChart({ data, labels }) {
 
@@ -281,7 +275,6 @@ function RevenueTrendChart({ data, labels }) {
   );
 }
 
-/* ---------------- RISK ---------------- */
 
 function RiskItem({ label, value, state }) {
   return (
@@ -292,7 +285,6 @@ function RiskItem({ label, value, state }) {
   );
 }
 
-/* ---------------- RECO ---------------- */
 
 function Reco({ type, title, text }) {
   return (
@@ -304,7 +296,7 @@ function Reco({ type, title, text }) {
   );
 }
 
-/* ---------------- SLIDER ---------------- */
+
 
 function Slider({ label, value, onChange }) {
   return (
@@ -325,9 +317,6 @@ function Slider({ label, value, onChange }) {
   );
 }
 
-/* =====================================================
-   FORM
-===================================================== */
 
 function ExecutiveEntryForm() {
 
