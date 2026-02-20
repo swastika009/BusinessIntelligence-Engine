@@ -318,44 +318,82 @@ function Slider({ label, value, onChange }) {
 }
 
 
+// ---------------- EXECUTIVE ENTRY FORM (UPDATED FINAL VERSION) ----------------
+
 function ExecutiveEntryForm() {
 
+  const productData = {
+    Accessories: { logistics: 13898, manufacturing: 159875, price: 65776 },
+    Mobile: { logistics: 22323, manufacturing: 211600, price: 23910 },
+    Tablet: { logistics: 5671, manufacturing: 397266, price: 25069 }
+  };
+
+  const discountMap = {
+    "1-10": 10,
+    "11-20": 20,
+    "21-30": 30,
+    "31-40": 40,
+    "41-50": 50
+  };
+
   const [form, setForm] = useState({
-    name: "",
-    email: "",
     date: "",
     product: "Accessories",
-    unit: "",
-    payment: "Cash"
+    region: "North",
+    channel: "Online",
+    logisticsCost: 13898,
+    manufacturingCost: 159875,
+    pricePerUnit: 65776,
+    unitSold: "1-10",
+    discount: 10
   });
 
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleProductChange = (e) => {
+    const selected = e.target.value;
+
+    setForm({
+      ...form,
+      product: selected,
+      logisticsCost: productData[selected].logistics,
+      manufacturingCost: productData[selected].manufacturing,
+      pricePerUnit: productData[selected].price
+    });
+  };
+
+  const handleUnitChange = (e) => {
+    const selected = e.target.value;
+
+    setForm({
+      ...form,
+      unitSold: selected,
+      discount: Math.min(discountMap[selected], 50)
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.email || !form.date || !form.unit) {
-      setError("Please fill all required fields");
+    if (!form.date) {
+      setError("Please select date");
       return;
     }
 
     setError("");
-
-    console.log("Form Data :", form);
-
+    console.log("Final Form Data :", form);
     alert("Form submitted successfully");
 
     setForm({
-      name: "",
-      email: "",
       date: "",
       product: "Accessories",
-      unit: "",
-      payment: "Cash"
+      region: "North",
+      channel: "Online",
+      logisticsCost: 13898,
+      manufacturingCost: 159875,
+      pricePerUnit: 65776,
+      unitSold: "1-10",
+      discount: 10
     });
   };
 
@@ -366,44 +404,17 @@ function ExecutiveEntryForm() {
       <form onSubmit={handleSubmit} className="exec-form">
 
         <div className="form-row">
-          <label>Name *</label>
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="Enter name"
-          />
-        </div>
-
-        <div className="form-row">
-          <label>Email ID *</label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Enter email"
-          />
-        </div>
-
-        <div className="form-row">
           <label>Date *</label>
           <input
             type="date"
-            name="date"
             value={form.date}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
           />
         </div>
 
         <div className="form-row">
           <label>Product</label>
-          <select
-            name="product"
-            value={form.product}
-            onChange={handleChange}
-          >
+          <select value={form.product} onChange={handleProductChange}>
             <option>Accessories</option>
             <option>Mobile</option>
             <option>Tablet</option>
@@ -411,36 +422,67 @@ function ExecutiveEntryForm() {
         </div>
 
         <div className="form-row">
-          <label>Unit *</label>
-          <input
-            type="number"
-            name="unit"
-            value={form.unit}
-            onChange={handleChange}
-            placeholder="Enter units"
-          />
-        </div>
-
-        <div className="form-row">
-          <label>Payment Mode</label>
+          <label>Region</label>
           <select
-            name="payment"
-            value={form.payment}
-            onChange={handleChange}
+            value={form.region}
+            onChange={(e) => setForm({ ...form, region: e.target.value })}
           >
-            <option>Cash</option>
-            <option>UPI</option>
-            <option>Bank</option>
+            <option>North</option>
+            <option>South</option>
+            <option>East</option>
+            <option>West</option>
           </select>
         </div>
 
+        <div className="form-row">
+          <label>Channel</label>
+          <select
+            value={form.channel}
+            onChange={(e) => setForm({ ...form, channel: e.target.value })}
+          >
+            <option>Online</option>
+            <option>Offline</option>
+          </select>
+        </div>
+
+        <div className="form-row">
+          <label>Logistics Cost</label>
+          <input type="number" value={form.logisticsCost} readOnly />
+        </div>
+
+        <div className="form-row">
+          <label>Manufacturing Cost</label>
+          <input type="number" value={form.manufacturingCost} readOnly />
+        </div>
+
+        <div className="form-row">
+          <label>Price Per Unit</label>
+          <input type="number" value={form.pricePerUnit} readOnly />
+        </div>
+
+        <div className="form-row">
+          <label>Unit Sold</label>
+          <select value={form.unitSold} onChange={handleUnitChange}>
+            <option>1-10</option>
+            <option>11-20</option>
+            <option>21-30</option>
+            <option>31-40</option>
+            <option>41-50</option>
+          </select>
+        </div>
+
+        <div className="form-row">
+          <label>Discount (%)</label>
+          <input type="number" value={form.discount} readOnly />
+        </div>
+
         {error && (
-          <p style={{ color: "#ff1744", fontWeight: 600, gridColumn: "span 2" }}>
+          <p style={{ color: "#ff1744", fontWeight: 600 }}>
             {error}
           </p>
         )}
 
-        <button type="submit" className="submit-btn">
+                <button type="submit" className="submit-btn">
           Submit
         </button>
 
