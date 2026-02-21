@@ -4,14 +4,15 @@ import "./ExecutiveDashboard.css";
 import DecisionOverview from "../components/DecisionOverview";
 import ProjectedImpact from "../components/ProjectedImpact";
 
-import { fetchDashboardSummary, fetchKPI, fetchHealth } from "../api/api";
+import { fetchDashboardSummary, saveSheetData } from "../api/api";
+
+/*  MAIN DASHBOARD */
 
 export default function ExecutiveDashboard() {
-
   const [summary, setSummary] = useState(null);
-  const [kpiData, setKpiData] = useState(null);
-  const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  /* Budget Simulation  */
 
   const [budget, setBudget] = useState({
     marketing: 30,
@@ -22,31 +23,34 @@ export default function ExecutiveDashboard() {
   });
 
   const total = Object.values(budget).reduce((a, b) => a + b, 0);
+
   const showLowBudgetMessage = total > 100;
 
   const updateBudget = (key, value) => {
     setBudget({ ...budget, [key]: value });
   };
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const summaryRes = await fetchDashboardSummary();
-        const kpiRes = await fetchKPI();
-        const healthRes = await fetchHealth();
+  /* ================= LOAD DASHBOARD ================= */
 
-        setSummary(summaryRes);
-        setKpiData(kpiRes);
-        setHealthData(healthRes);
-      } catch (err) {
-        console.error("API Error:", err);
-      } finally {
-        setLoading(false);
-      }
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetchDashboardSummary();
+
+      setSummary(res);
+    } catch (err) {
+      console.error("Dashboard Load Error:", err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    loadData();
+  useEffect(() => {
+    loadDashboard();
   }, []);
+
+  /* ================= LOADER ================= */
 
   if (loading) {
     return (
@@ -56,15 +60,40 @@ export default function ExecutiveDashboard() {
     );
   }
 
+  /* ================= KPI DATA ================= */
+
   const kpis = [
-    { title: "Total Records", value: kpiData?.totalRecords || 0, trend: "up", status: "good" },
-    { title: "Health Records", value: healthData?.totalRecords || 0, trend: "up", status: "good" },
-    { title: "Profit Status", value: summary?.profitability || "N/A", trend: "up", status: "good" },
-    { title: "Risk Level", value: summary?.riskStatus || "N/A", trend: "down", status: "warn" },
+    {
+      title: "Total Revenue",
+      value: summary?.totalRevenue || 0,
+      trend: "up",
+      status: "good",
+    },
+    {
+      title: "Total Profit",
+      value: summary?.totalProfit || 0,
+      trend: "up",
+      status: "good",
+    },
+    {
+      title: "Profit Status",
+      value: summary?.profitability || "N/A",
+      trend: "up",
+      status: "good",
+    },
+    {
+      title: "Risk Level",
+      value: summary?.riskStatus || "N/A",
+      trend: "down",
+      status: "warn",
+    },
   ];
+
+  /* ================= UI ================= */
 
   return (
     <div className="dashboard-page">
+      {/* ===== KPI ===== */}
 
       <div className="kpi-grid">
         {kpis.map((k, i) => (
@@ -72,44 +101,81 @@ export default function ExecutiveDashboard() {
         ))}
       </div>
 
+      {/* ===== MIDDLE ===== */}
+
       <div className="mid-grid">
+        {/* Revenue Chart */}
 
         <div className="card">
           <h3 className="section-title">Revenue Trend</h3>
 
           <RevenueTrendChart
-            data={summary?.revenueTrend || [42, 48, 46, 52, 60, 58, 66]}
-            labels={["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]}
+            data={summary?.revenueTrend}
+            labels={summary?.revenueLabels}
           />
         </div>
+
+        {/* Risk Box */}
 
         <div className="card">
           <h3 className="section-title">Risk Indicators</h3>
 
-          <RiskItem label="Overall Risk" value={summary?.riskStatus || "N/A"} state="warning" />
-          <RiskItem label="Action Area" value={summary?.actionArea || "N/A"} state="safe" />
+          <RiskItem
+            label="Overall Risk"
+            value={summary?.riskStatus}
+            state="warning"
+          />
+
+          <RiskItem
+            label="Action Area"
+            value={summary?.actionArea}
+            state="safe"
+          />
+
           <RiskItem
             label="Investment Impact"
-            value={summary?.investmentImpact || "N/A"}
+            value={summary?.investmentImpact}
             state="critical"
           />
         </div>
-
       </div>
 
+      {/* ===== BOTTOM ===== */}
+
       <div className="bottom-grid">
+        {/* Left */}
+
         <div>
           <DecisionOverview summary={summary} />
+
           <ProjectedImpact summary={summary} />
         </div>
+
+        {/* Recommendations */}
 
         <div>
           <h3 className="section-title">Strategic Recommendations</h3>
 
-          <Reco type="warning" title="Improve logistics" text={summary?.logisticsAdvice || "Review delivery performance"} />
-          <Reco type="danger" title="Audit sellers" text={summary?.sellerAdvice || "Audit risky sellers"} />
-          <Reco type="success" title="Boost marketing" text={summary?.marketingAdvice || "Increase campaigns"} />
+          <Reco
+            type="warning"
+            title="Improve logistics"
+            text={summary?.logisticsAdvice}
+          />
+
+          <Reco
+            type="danger"
+            title="Audit sellers"
+            text={summary?.sellerAdvice}
+          />
+
+          <Reco
+            type="success"
+            title="Boost marketing"
+            text={summary?.marketingAdvice}
+          />
         </div>
+
+        {/* Budget */}
 
         <div className="card">
           <h3 className="section-title">₹10 Lakh Budget Simulation</h3>
@@ -128,50 +194,96 @@ export default function ExecutiveDashboard() {
           </p>
 
           {showLowBudgetMessage && (
-            <p style={{ color: "#ff1744", fontWeight: 600 }}>
-              ⚠ Low Budget: Allocation exceeded 100%.
+            <p
+              style={{
+                color: "#ff1744",
+                fontWeight: 600,
+              }}
+            >
+              ⚠ Allocation exceeded 100%
             </p>
           )}
 
-          <Slider label="Marketing" value={budget.marketing} onChange={(v) => updateBudget("marketing", v)} />
-          <Slider label="Logistics" value={budget.logistics} onChange={(v) => updateBudget("logistics", v)} />
-          <Slider label="Incentives" value={budget.incentives} onChange={(v) => updateBudget("incentives", v)} />
-          <Slider label="Fraud Control" value={budget.fraud} onChange={(v) => updateBudget("fraud", v)} />
-          <Slider label="Technology" value={budget.tech} onChange={(v) => updateBudget("tech", v)} />
+          <Slider
+            label="Marketing"
+            value={budget.marketing}
+            onChange={(v) => updateBudget("marketing", v)}
+          />
+
+          <Slider
+            label="Logistics"
+            value={budget.logistics}
+            onChange={(v) => updateBudget("logistics", v)}
+          />
+
+          <Slider
+            label="Incentives"
+            value={budget.incentives}
+            onChange={(v) => updateBudget("incentives", v)}
+          />
+
+          <Slider
+            label="Fraud"
+            value={budget.fraud}
+            onChange={(v) => updateBudget("fraud", v)}
+          />
+
+          <Slider
+            label="Technology"
+            value={budget.tech}
+            onChange={(v) => updateBudget("tech", v)}
+          />
         </div>
       </div>
 
+
       <div className="card executive-box">
         <h3 className="section-title">Executive Summary</h3>
-
         <ul>
-          <li><b>Are we profitable?</b> → {summary?.profitability || "N/A"}</li>
-          <li><b>Are we at risk?</b> → {summary?.riskStatus || "N/A"}</li>
-          <li><b>Where should we act?</b> → {summary?.actionArea || "N/A"}</li>
-          <li><b>If we invest ₹10L?</b> → {summary?.investmentImpact || "N/A"}</li>
+          <li>
+            <b>Are we profitable?</b>→ {summary?.profitability}
+          </li>
+
+          <li>
+            <b>Are we at risk?</b>→ {summary?.riskStatus}
+          </li>
+
+          <li>
+            <b>Where should we act?</b>→ {summary?.actionArea}
+          </li>
+
+          <li>
+            <b>If we invest ₹10L?</b>→ {summary?.investmentImpact}
+          </li>
         </ul>
       </div>
 
 
-      <ExecutiveEntryForm />
-
+      <ExecutiveEntryForm reload={loadDashboard} />
     </div>
   );
 }
 
+/* KPI CARD */
 
 function KPI({ title, value, trend, status }) {
   return (
     <div className={`card kpi ${status}`}>
       <div className="kpi-title">{title}</div>
+
       <div className="kpi-value">{value}</div>
+
       <div className="kpi-sub">{trend === "up" ? "↑" : "↓"}</div>
     </div>
   );
 }
 
+/*  CHART */
 
 function RevenueTrendChart({ data, labels }) {
+  if (!data || data.length === 0) {
+    return <p>No revenue data available</p>;
+  }
 
   const width = 900;
   const height = 360;
@@ -189,82 +301,34 @@ function RevenueTrendChart({ data, labels }) {
   const points = data.map((v, i) => ({
     x: scaleX(i),
     y: scaleY(v),
-    v
+    v,
   }));
 
-  const linePath =
-    "M " + points.map(p => `${p.x} ${p.y}`).join(" L ");
+  const linePath = "M " + points.map((p) => `${p.x} ${p.y}`).join(" L ");
 
   const areaPath =
     linePath +
     ` L ${points[points.length - 1].x} ${height - padding}` +
     ` L ${points[0].x} ${height - padding} Z`;
 
-  const gridLines = 5;
-
   return (
-    <div style={{ width: "100%", overflowX: "auto", paddingBottom: 6 }}>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        width="100%"
-        height={height}
-      >
-        <defs>
-          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <div style={{ width: "100%" }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height}>
+        <path d={areaPath} fill="rgba(99,102,241,0.2)" />
 
-        {[...Array(gridLines + 1)].map((_, i) => {
-          const y =
-            padding + (i * (height - padding * 2)) / gridLines;
-
-          return (
-            <line
-              key={i}
-              x1={padding}
-              y1={y}
-              x2={width - padding}
-              y2={y}
-              stroke="#e5e7eb"
-              strokeDasharray="5 5"
-            />
-          );
-        })}
-
-        <path d={areaPath} fill="url(#revGrad)" />
-
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#4f46e5"
-          strokeWidth="4"
-        />
+        <path d={linePath} fill="none" stroke="#4f46e5" strokeWidth="3" />
 
         {points.map((p, i) => (
-          <g key={i}>
-            <circle cx={p.x} cy={p.y} r="6" fill="#4f46e5" />
-            <text
-              x={p.x}
-              y={p.y - 12}
-              textAnchor="middle"
-              fontSize="12"
-              fill="#1f2933"
-              fontWeight="600"
-            >
-              {p.v}
-            </text>
-          </g>
+          <circle key={i} cx={p.x} cy={p.y} r="5" fill="#4f46e5" />
         ))}
 
         {labels?.map((lb, i) => (
           <text
             key={i}
             x={scaleX(i)}
-            y={height - 15}
+            y={height - 10}
             textAnchor="middle"
-            fontSize="13"
+            fontSize="12"
             fill="#6b7280"
           >
             {lb}
@@ -275,34 +339,40 @@ function RevenueTrendChart({ data, labels }) {
   );
 }
 
+/*  RISK */
 
 function RiskItem({ label, value, state }) {
   return (
     <div className={`risk-row ${state}`}>
       <span>{label}</span>
+
       <b>{value}</b>
     </div>
   );
 }
 
+/*  RECO  */
 
 function Reco({ type, title, text }) {
   return (
     <div className={`reco-card reco-${type}`}>
       <span className={`reco-badge badge-${type}`}>{type.toUpperCase()}</span>
+
       <div className="reco-title">{title}</div>
+
       <div className="reco-text">{text}</div>
     </div>
   );
 }
 
-
+/* SLIDER */
 
 function Slider({ label, value, onChange }) {
   return (
     <div className="slider-block">
       <div className="slider-head">
         <span>{label}</span>
+
         <span>{value}%</span>
       </div>
 
@@ -317,14 +387,25 @@ function Slider({ label, value, onChange }) {
   );
 }
 
+/* ================= FORM ================= */
 
-
-function ExecutiveEntryForm() {
-
+function ExecutiveEntryForm({ reload }) {
   const productData = {
-    Accessories: { logistics: 13898, manufacturing: 159875, price: 65776 },
-    Mobile: { logistics: 22323, manufacturing: 211600, price: 23910 },
-    Tablet: { logistics: 5671, manufacturing: 397266, price: 25069 }
+    Accessories: {
+      logistics: 13898,
+      manufacturing: 159875,
+      price: 65776,
+    },
+    Mobile: {
+      logistics: 22323,
+      manufacturing: 211600,
+      price: 23910,
+    },
+    Tablet: {
+      logistics: 5671,
+      manufacturing: 397266,
+      price: 25069,
+    },
   };
 
   const discountMap = {
@@ -332,7 +413,7 @@ function ExecutiveEntryForm() {
     "11-20": 20,
     "21-30": 30,
     "31-40": 40,
-    "41-50": 50
+    "41-50": 50,
   };
 
   const [form, setForm] = useState({
@@ -344,10 +425,12 @@ function ExecutiveEntryForm() {
     manufacturingCost: 159875,
     pricePerUnit: 65776,
     unitSold: "1-10",
-    discount: 10
+    discount: 10,
   });
 
   const [error, setError] = useState("");
+
+  /* ===== Product Change ===== */
 
   const handleProductChange = (e) => {
     const selected = e.target.value;
@@ -357,9 +440,11 @@ function ExecutiveEntryForm() {
       product: selected,
       logisticsCost: productData[selected].logistics,
       manufacturingCost: productData[selected].manufacturing,
-      pricePerUnit: productData[selected].price
+      pricePerUnit: productData[selected].price,
     });
   };
+
+  /* ===== Units Change ===== */
 
   const handleUnitChange = (e) => {
     const selected = e.target.value;
@@ -367,33 +452,47 @@ function ExecutiveEntryForm() {
     setForm({
       ...form,
       unitSold: selected,
-      discount: Math.min(discountMap[selected], 50)
+      discount: Math.min(discountMap[selected], 50),
     });
   };
 
-  const handleSubmit = (e) => {
+  /* ===== Submit ===== */
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.date) {
-      setError("Please select date");
+      setError("Select date");
       return;
     }
 
-    setError("");
-    console.log("Final Form Data :", form);
-    alert("Form submitted successfully");
+    const units = Number(form.unitSold.split("-")[1]);
 
-    setForm({
-      date: "",
-      product: "Accessories",
-      region: "North",
-      channel: "Online",
-      logisticsCost: 13898,
-      manufacturingCost: 159875,
-      pricePerUnit: 65776,
-      unitSold: "1-10",
-      discount: 10
-    });
+    const payload = {
+      date: form.date,
+      product: form.product,
+      region: form.region,
+      channel: form.channel,
+      logisticsCost: form.logisticsCost,
+      manufacturingCost: form.manufacturingCost,
+      pricePerUnit: form.pricePerUnit,
+      unitsSold: units,
+      discount: form.discount,
+    };
+
+    try {
+      await saveSheetData(payload);
+
+      alert("Saved Successfully");
+
+      reload();
+
+      setError("");
+    } catch (err) {
+      console.error(err);
+
+      setError("Save failed");
+    }
   };
 
   return (
@@ -401,91 +500,111 @@ function ExecutiveEntryForm() {
       <h3 className="section-title">Sales / Order Entry</h3>
 
       <form onSubmit={handleSubmit} className="exec-form">
+        {/* Date */}
 
-        <div className="form-row">
-          <label>Date *</label>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-          />
-        </div>
+        <Input
+          label="Date *"
+          type="date"
+          value={form.date}
+          onChange={(v) => setForm({ ...form, date: v })}
+        />
 
-        <div className="form-row">
-          <label>Product</label>
-          <select value={form.product} onChange={handleProductChange}>
-            <option>Accessories</option>
-            <option>Mobile</option>
-            <option>Tablet</option>
-          </select>
-        </div>
+        {/* Product */}
 
-        <div className="form-row">
-          <label>Region</label>
-          <select
-            value={form.region}
-            onChange={(e) => setForm({ ...form, region: e.target.value })}
-          >
-            <option>North</option>
-            <option>South</option>
-            <option>East</option>
-            <option>West</option>
-          </select>
-        </div>
+        <Select
+          label="Product"
+          value={form.product}
+          options={["Accessories", "Mobile", "Tablet"]}
+          onChange={handleProductChange}
+        />
 
-        <div className="form-row">
-          <label>Channel</label>
-          <select
-            value={form.channel}
-            onChange={(e) => setForm({ ...form, channel: e.target.value })}
-          >
-            <option>Online</option>
-            <option>Offline</option>
-          </select>
-        </div>
+        {/* Region */}
 
-        <div className="form-row">
-          <label>Logistics Cost</label>
-          <input type="number" value={form.logisticsCost} readOnly />
-        </div>
+        <Select
+          label="Region"
+          value={form.region}
+          options={["North", "South", "East", "West"]}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              region: e.target.value,
+            })
+          }
+        />
 
-        <div className="form-row">
-          <label>Manufacturing Cost</label>
-          <input type="number" value={form.manufacturingCost} readOnly />
-        </div>
+        {/* Channel */}
+        <Select
+          label="Channel"
+          value={form.channel}
+          options={["Online", "Offline"]}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              channel: e.target.value,
+            })
+          }
+        />
 
-        <div className="form-row">
-          <label>Price Per Unit</label>
-          <input type="number" value={form.pricePerUnit} readOnly />
-        </div>
+        <ReadOnly label="Logistics Cost" value={form.logisticsCost} />
+        <ReadOnly label="Manufacturing Cost" value={form.manufacturingCost} />
+        <ReadOnly label="Price Per Unit" value={form.pricePerUnit} />
 
-        <div className="form-row">
-          <label>Unit Sold</label>
-          <select value={form.unitSold} onChange={handleUnitChange}>
-            <option>1-10</option>
-            <option>11-20</option>
-            <option>21-30</option>
-            <option>31-40</option>
-            <option>41-50</option>
-          </select>
-        </div>
+        {/* Units */}
+        <Select
+          label="Unit Sold"
+          value={form.unitSold}
+          options={["1-10", "11-20", "21-30", "31-40", "41-50"]}
+          onChange={handleUnitChange}
+        />
 
-        <div className="form-row">
-          <label>Discount (%)</label>
-          <input type="number" value={form.discount} readOnly />
-        </div>
+        <ReadOnly label="Discount (%)" value={form.discount} />
 
-        {error && (
-          <p style={{ color: "#ff1744", fontWeight: 600 }}>
-            {error}
-          </p>
-        )}
+        {error && <p style={{ color: "#ff1744" }}>{error}</p>}
 
-                <button type="submit" className="submit-btn">
+        <button type="submit" className="submit-btn">
           Submit
         </button>
-
       </form>
+    </div>
+  );
+}
+
+/* SMALL COMPONENTS  */
+
+function Input({ label, type, value, onChange }) {
+  return (
+    <div className="form-row">
+      <label>{label}</label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function Select({ label, value, options, onChange }) {
+  return (
+    <div className="form-row">
+      <label>{label}</label>
+
+      <select value={value} onChange={onChange}>
+        {options.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ReadOnly({ label, value }) {
+  return (
+    <div className="form-row">
+      <label>{label}</label>
+
+      <input type="number" value={value} readOnly />
     </div>
   );
 }
